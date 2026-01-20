@@ -6,7 +6,6 @@ from api.api.endpoints import api_router
 
 import logging
 
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -18,6 +17,7 @@ app = FastAPI()
 
 app.add_middleware(RequestIDMiddleware)
 
+# Need for frontend to work
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

@@ -8,6 +8,8 @@ __pycache__/
 
 # Security
 *.env
+qdrant_storage/
+data/
 
 # Distribution / packaging
 .Python

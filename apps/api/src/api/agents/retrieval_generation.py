@@ -2,8 +2,7 @@ import openai
 from qdrant_client import QdrantClient
 from langsmith import traceable, get_current_run_tree
 
-
-@traceable(
+@traceable (
     name="embed_query",
     run_type="embedding",
     metadata={"ls_provider": "openai", "ls_model_name": "text-embedding-3-small"}
@@ -13,26 +12,22 @@ def get_embedding(text, model="text-embedding-3-small"):
         input=text,
         model=model,
     )
-
     current_run = get_current_run_tree()
-
     if current_run:
         current_run.metadata["usage_metadata"] = {
             "input_tokens": response.usage.prompt_tokens,
             "total_tokens": response.usage.total_tokens,
         }
+        
 
     return response.data[0].embedding
-
 
 @traceable(
     name="retrieve_data",
     run_type="retriever"
 )
 def retrieve_data(query, qdrant_client, k=5):
-
     query_embedding = get_embedding(query)
-
     results = qdrant_client.query_points(
         collection_name="Amazon-items-collection-00",
         query=query_embedding,
@@ -43,6 +38,8 @@ def retrieve_data(query, qdrant_client, k=5):
     retrieved_context = []
     similarity_scores = []
     retrieved_context_ratings = []
+    retrieved_context_prices =[]
+    retrieved_context_images = []
 
     for result in results.points:
         retrieved_context_ids.append(result.payload["parent_asin"])
@@ -57,9 +54,8 @@ def retrieve_data(query, qdrant_client, k=5):
         "similarity_scores": similarity_scores,
     }
 
-
 @traceable(
-    name="format_retrieved_context",
+    name="format_retrieve_context_for_LLM",
     run_type="prompt"
 )
 def process_context(context):
@@ -70,7 +66,6 @@ def process_context(context):
         formatted_context += f"- ID: {id}, rating: {rating}, description: {chunk}\n"
 
     return formatted_context
-
 
 @traceable(
     name="build_prompt",
@@ -83,7 +78,7 @@ You are a shopping assistant that can answer questions about the products in sto
 
 You will be given a question and a list of context.
 
-Instructtions:
+Instructions:
 - You need to answer the question based on the provided context only.
 - Never use word context and refer to it as the available products.
 
@@ -95,7 +90,6 @@ Question:
 """
 
     return prompt
-
 
 @traceable(
     name="generate_answer",
@@ -112,6 +106,7 @@ def generate_answer(prompt):
 
     current_run = get_current_run_tree()
     
+    ## Dyanmic metadata to the function for trace, Only available post reponse object
     if current_run:
         current_run.metadata["usage_metadata"] = {
             "input_tokens": response.usage.prompt_tokens,
@@ -120,7 +115,6 @@ def generate_answer(prompt):
         }
 
     return response.choices[0].message.content
-
 
 @traceable(
     name="rag_pipeline"
@@ -132,6 +126,7 @@ def rag_pipeline(question, qdrant_client, top_k=5):
     prompt = build_prompt(preprocessed_context, question)
     answer = generate_answer(prompt)
 
+    ## Good to return like this rather than just answer for evals test
     final_result = {
         "answer": answer,
         "question": question,

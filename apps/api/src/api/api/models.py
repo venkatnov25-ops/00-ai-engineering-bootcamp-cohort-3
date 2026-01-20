@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field
 
-
 class RAGRequest(BaseModel):
     query: str = Field(..., description="The query to be used in the RAG pipeline")
 
