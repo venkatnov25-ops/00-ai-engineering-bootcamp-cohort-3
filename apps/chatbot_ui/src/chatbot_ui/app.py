@@ -2,6 +2,11 @@ import streamlit as st
 import requests
 from chatbot_ui.core.config import config
 
+st.set_page_config(
+    page_title="Ecommerce Assistant",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 def api_call(method, url, **kwargs):
 
@@ -44,6 +49,26 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+if "used_context" not in st.session_state:
+    st.session_state.used_context = []
+
+with st.sidebar:
+    # Create tabs in the sidebar
+    suggestions_tab, = st.tabs(["🔍 Suggestions"])
+    
+    # Suggestions Tab
+    with suggestions_tab:
+        if st.session_state.used_context:
+            ## What is idx here? Pl check by printing
+            for idx, item in enumerate(st.session_state.used_context):
+                st.caption(item.get('description', 'No description'))
+                if 'image_url' in item:
+                    st.image(item["image_url"], width=250)
+                st.caption(f"Price: {item['price']} USD")
+                st.divider()
+        else:
+            st.info("No suggestions yet")
+
 
 if prompt := st.chat_input("Hello! How can I assist you today?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -51,8 +76,16 @@ if prompt := st.chat_input("Hello! How can I assist you today?"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        output = api_call("post", f"{config.API_URL}/rag", json={"query": prompt})
-        response_data = output[1]
-        answer = response_data["answer"]
+        ## Api call returns 2 things as above.
+        status, output = api_call("post", f"{config.API_URL}/rag", json={"query": prompt})
+       
+        answer = output["answer"]
+        used_context = output["used_context"]
+
+        st.session_state.used_context = used_context
         st.write(answer)
+
     st.session_state.messages.append({"role": "assistant", "content": answer})
+
+    ## We need to render side bar with images to be shown
+    st.rerun()
