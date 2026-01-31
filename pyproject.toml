@@ -9,6 +9,7 @@ dependencies = [
     "groq>=1.0.0",
     "instructor>=1.14.1",
     "ipykernel>=7.1.0",
+    "notebook>=7.5.3",
     "openai>=2.15.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
